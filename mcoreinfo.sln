@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mcoreinfo", "mcoreinfo\mcoreinfo.csproj", "{6EDAB273-0332-4DAE-91EC-DC20FB2C7CC6}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "sysinfo", "sysinfo\sysinfo.shproj", "{924050B4-D748-4245-92B6-B5B8B889DB10}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		sysinfo\sysinfo.projitems*{6edab273-0332-4dae-91ec-dc20fb2c7cc6}*SharedItemsImports = 4
+		sysinfo\sysinfo.projitems*{924050b4-d748-4245-92b6-b5b8b889db10}*SharedItemsImports = 13
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6EDAB273-0332-4DAE-91EC-DC20FB2C7CC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6EDAB273-0332-4DAE-91EC-DC20FB2C7CC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6EDAB273-0332-4DAE-91EC-DC20FB2C7CC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6EDAB273-0332-4DAE-91EC-DC20FB2C7CC6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

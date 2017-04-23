@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>924050b4-d748-4245-92b6-b5b8b889db10</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>sysinfo</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)CpuCacheInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CpuCoreInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CpuGroupInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CpuNumaNodeInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CpuSocketInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NativeMethods.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)MoreThan64proc.docx" />
+  </ItemGroup>
+</Project>
