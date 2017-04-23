@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
+
 // ReSharper disable InconsistentNaming
 
 namespace SysInfo
@@ -143,8 +144,7 @@ namespace SysInfo
         internal struct NUMA_NODE_RELATIONSHIP
         {
             public uint NodeNumber;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-            public byte[] Reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)] public byte[] Reserved;
             public GROUP_AFFINITY GroupMask;
         }
 
@@ -152,6 +152,7 @@ namespace SysInfo
         internal struct PROCESSOR_RELATIONSHIP
         {
             public byte Flags;
+
             //
             // NOTE: Apparently there is a error in the MSDN documentation (https://msdn.microsoft.com/en-us/library/windows/desktop/dd405506.aspx),
             // as of 2017/04/23. The PROCESSOR_RELATIONSHIP structure documented there,
@@ -179,11 +180,10 @@ namespace SysInfo
             // and the Reserved member would have to give one byte to it.
             //
             public byte EfficiencyClass;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-            public byte[] Reserved;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)] public byte[] Reserved;
             public ushort GroupCount;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-            public GROUP_AFFINITY[] GroupMask;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)] public GROUP_AFFINITY[] GroupMask;
         }
 
         /// <summary>
@@ -201,8 +201,7 @@ namespace SysInfo
             public ushort LineSize;
             public uint CacheSize;
             public PROCESSOR_CACHE_TYPE Type;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-            public byte[] Reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)] public byte[] Reserved;
             public GROUP_AFFINITY GroupMask;
         }
 
@@ -211,8 +210,7 @@ namespace SysInfo
         {
             public IntPtr Mask;
             public ushort Group;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-            public ushort[] Reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)] public ushort[] Reserved;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -220,10 +218,8 @@ namespace SysInfo
         {
             public ushort MaximumGroupCount;
             public ushort ActiveGroupCount;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-            public byte[] Reserved;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-            public PROCESSOR_GROUP_INFO[] GroupInfo;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)] public byte[] Reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)] public PROCESSOR_GROUP_INFO[] GroupInfo;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -231,8 +227,7 @@ namespace SysInfo
         {
             public byte MaximumProcessorCount;
             public byte ActiveProcessorCount;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 38)]
-            public byte[] Reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 38)] public byte[] Reserved;
             public IntPtr ActiveProcessorMask;
         }
 
@@ -299,14 +294,7 @@ namespace SysInfo
 
             pmask &= smask;
 
-            int count = 0;
-            while (pmask > 0)
-            {
-                if ((pmask & 1) != 0)
-                    count++;
-
-                pmask >>= 1;
-            }
+            int count = CountBitsSet(pmask);
 
             // GetProcessAffinityMask can return pmask=0 and smask=0 on systems with more
             // than 64 processors, which would leave us with a count of 0.  Since the GC
@@ -320,5 +308,59 @@ namespace SysInfo
 
             return count;
         }
+
+        internal static int CountBitsSet(long mask)
+        {
+            if (mask == 1)
+                return 1;
+
+            int count = 0;
+            while (mask > 0)
+            {
+                if ((mask & 1) != 0)
+                    count++;
+                mask >>= 1;
+            }
+            return count;
+        }
+
+        // --------------------------------------------------------------------------------
+
+        [DllImport(KernelDll, SetLastError = true)]
+        internal static extern bool IsProcessorFeaturePresent(uint ProcessorFeature);
+
+        internal const uint PF_FLOATING_POINT_PRECISION_ERRATA = 0;
+        internal const uint PF_FLOATING_POINT_EMULATED = 1;
+        internal const uint PF_COMPARE_EXCHANGE_DOUBLE = 2;
+        internal const uint PF_MMX_INSTRUCTIONS_AVAILABLE = 3;
+        internal const uint PF_PPC_MOVEMEM_64BIT_OK = 4;
+        internal const uint PF_ALPHA_BYTE_INSTRUCTIONS = 5;
+        internal const uint PF_XMMI_INSTRUCTIONS_AVAILABLE = 6;
+        internal const uint PF_3DNOW_INSTRUCTIONS_AVAILABLE = 7;
+        internal const uint PF_RDTSC_INSTRUCTION_AVAILABLE = 8;
+        internal const uint PF_PAE_ENABLED = 9;
+        internal const uint PF_XMMI64_INSTRUCTIONS_AVAILABLE = 10;
+        internal const uint PF_SSE_DAZ_MODE_AVAILABLE = 11;
+        internal const uint PF_NX_ENABLED = 12;
+        internal const uint PF_SSE3_INSTRUCTIONS_AVAILABLE = 13;
+        internal const uint PF_COMPARE_EXCHANGE128 = 14;
+        internal const uint PF_COMPARE64_EXCHANGE128 = 15;
+        internal const uint PF_CHANNELS_ENABLED = 16;
+        internal const uint PF_XSAVE_ENABLED = 17;
+        internal const uint PF_ARM_VFP_32_REGISTERS_AVAILABLE = 18;
+        internal const uint PF_ARM_NEON_INSTRUCTIONS_AVAILABLE = 19;
+        internal const uint PF_SECOND_LEVEL_ADDRESS_TRANSLATION = 20;
+        internal const uint PF_VIRT_FIRMWARE_ENABLED = 21;
+        internal const uint PF_RDWRFSGSBASE_AVAILABLE = 22;
+        internal const uint PF_FASTFAIL_AVAILABLE = 23;
+        internal const uint PF_ARM_DIVIDE_INSTRUCTION_AVAILABLE = 24;
+        internal const uint PF_ARM_64BIT_LOADSTORE_ATOMIC = 25;
+        internal const uint PF_ARM_EXTERNAL_CACHE_AVAILABLE = 26;
+        internal const uint PF_ARM_FMAC_INSTRUCTIONS_AVAILABLE = 27;
+        internal const uint PF_RDRAND_INSTRUCTION_AVAILABLE = 28;
+        internal const uint PF_ARM_V8_INSTRUCTIONS_AVAILABLE = 29;
+        internal const uint PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE = 30;
+        internal const uint PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE = 31;
+        internal const uint PF_RDTSCP_INSTRUCTION_AVAILABLE = 32;
     }
 }

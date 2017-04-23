@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)CpuCacheInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CpuCapabilities.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CpuCoreInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CpuGroupInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CpuNumaNodeInfo.cs" />
@@ -17,6 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)NativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)CpuId_Experimental.cs" />
     <None Include="$(MSBuildThisFileDirectory)MoreThan64proc.docx" />
   </ItemGroup>
 </Project>

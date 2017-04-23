@@ -26,17 +26,31 @@ namespace SysInfo
                 tw.Write("Core ");
                 tw.Write(i);
                 tw.Write(" ");
-                tw.Write(entry.Flags == NativeMethods.LPT_PC_SMT ? "(Hyperthreaded)" : "");
+                if (IsHyperThreaded(i))
+                {
+                    tw.Write("(Hyperthreaded, ");
+                    tw.Write(GetNumberOfLogicalProcessors(i));
+                    tw.Write(" logical processors)");
+                }
                 tw.WriteLine();
             }
         }
 
-        public int NumberOfCores => s_data.Value.Count;
+        public static int NumberOfCores => s_data.Value.Count;
 
-        public bool IsHyperThreaded(int cpuCoreIndex)
+        public static int NumberOfLogicalProcessors => s_data.Value.Sum(
+            c => NativeMethods.CountBitsSet(c.GroupMask[0].Mask.ToInt64()));
+
+        public static bool IsHyperThreaded(int cpuCoreIndex)
         {
             return s_data.Value[cpuCoreIndex].Flags == NativeMethods.LPT_PC_SMT;
         }
+
+        public static int GetNumberOfLogicalProcessors(int cpuCoreIndex)
+        {
+            return NativeMethods.CountBitsSet(s_data.Value[cpuCoreIndex].GroupMask[0].Mask.ToInt64());
+        }
+
 
         private static readonly Lazy<List<NativeMethods.PROCESSOR_RELATIONSHIP>> s_data =
             new Lazy<List<NativeMethods.PROCESSOR_RELATIONSHIP>>(() => GetNativeInfo().ToList());

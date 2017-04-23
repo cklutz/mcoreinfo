@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using SysInfo;
 
 namespace mcoreinfo
@@ -9,6 +10,10 @@ namespace mcoreinfo
         {
             try
             {
+                var cap = new InstructionSet();
+                cap.Dump();
+
+
                 Console.WriteLine("Logical to Physical Processor Map:");
                 CpuCoreInfo.Dump();
                 Console.WriteLine();
