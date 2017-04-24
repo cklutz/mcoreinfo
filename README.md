@@ -2,37 +2,18 @@
 An attempt to implement Sysinternals coreinfo tool in managed code (with loads of P/Invoke of course)
 
 ## Current status
-Current focus is to get the P/Invoke stuff right under 32- and 64-bit.
 
-Only tested on an old quad core (hyperthreading) box under Windows 10.
-Output:
+Supports the following (in terms of "coreinfo.exe"):
 
-        Logical to Physical Processor Map:
-        **------ Core 0 (Hyperthreaded)
-        --**---- Core 1 (Hyperthreaded)
-        ----**-- Core 2 (Hyperthreaded)
-        ------** Core 3 (Hyperthreaded)
+* CPUID/Capabilities
+* "Logical to Physical processor Map"
+* "Logical Processor to Socket Map"
+* "Logical Processor to NUMA Map"
+* "Logical Processor to Cache Map"
+* "Logical Processor to Group Map"
 
-        Logical Processor to Socket Map:
-        ******** Socket 0
+Open:
 
-        Logical Processor to NUMA Node Map:
-        ******** NUMA Node 0
+* "Approximate Cross-NUMA Node Access Cost (relative to fastest)" on NUMA sytems.
+* Further align CPUID/Capabilities with coreinfo.exe
 
-        Logical Processor to Cache Map:
-        **------ CacheData        0, Level 1,       32 KB, Assoc  8, LineSize 64
-        **------ CacheInstruction 0, Level 1,       32 KB, Assoc  8, LineSize 64
-        **------ CacheUnified     0, Level 2,      256 KB, Assoc  8, LineSize 64
-        ******** CacheUnified     0, Level 3,    8.192 KB, Assoc 16, LineSize 64
-        --**---- CacheData        0, Level 1,       32 KB, Assoc  8, LineSize 64
-        --**---- CacheInstruction 0, Level 1,       32 KB, Assoc  8, LineSize 64
-        --**---- CacheUnified     0, Level 2,      256 KB, Assoc  8, LineSize 64
-        ----**-- CacheData        0, Level 1,       32 KB, Assoc  8, LineSize 64
-        ----**-- CacheInstruction 0, Level 1,       32 KB, Assoc  8, LineSize 64
-        ----**-- CacheUnified     0, Level 2,      256 KB, Assoc  8, LineSize 64
-        ------** CacheData        0, Level 1,       32 KB, Assoc  8, LineSize 64
-        ------** CacheInstruction 0, Level 1,       32 KB, Assoc  8, LineSize 64
-        ------** CacheUnified     0, Level 2,      256 KB, Assoc  8, LineSize 64
-
-        Logical Processor to Group Map:
-        ******** Group 0

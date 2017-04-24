@@ -10,9 +10,9 @@ namespace mcoreinfo
         {
             try
             {
-                var cap = new InstructionSet();
-                cap.Dump();
-
+                Console.WriteLine("Processor capabilities:");
+                CpuCapabilities.Dump();
+                Console.WriteLine();
 
                 Console.WriteLine("Logical to Physical Processor Map:");
                 CpuCoreInfo.Dump();

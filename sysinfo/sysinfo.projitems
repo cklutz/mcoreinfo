@@ -18,7 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)NativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)CpuId_Experimental.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CpuIdHelper.cs" />
     <None Include="$(MSBuildThisFileDirectory)MoreThan64proc.docx" />
   </ItemGroup>
 </Project>
