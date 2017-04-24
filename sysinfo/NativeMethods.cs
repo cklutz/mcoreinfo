@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 
 // ReSharper disable InconsistentNaming
 
@@ -11,6 +12,173 @@ namespace SysInfo
     {
         private const string KernelDll = "kernel32.dll";
         private const string NtDll = "ntdll.dll";
+
+        //[StructLayout(LayoutKind.Explicit)]
+        //internal class SLIT
+        //{
+        //    [FieldOffset(0)]
+        //    public int Signature;
+        //    [FieldOffset(4)]
+        //    public int Length;
+        //    [FieldOffset(8)]
+        //    public byte Revision;
+        //    [FieldOffset(9)]
+        //    public byte Checksum;
+        //    [FieldOffset(10)]
+        //    public byte OemId0;
+        //    [FieldOffset(11)]
+        //    public byte OemId1;
+        //    [FieldOffset(12)]
+        //    public byte OemId2;
+        //    [FieldOffset(13)]
+        //    public byte OemId3;
+        //    [FieldOffset(14)]
+        //    public byte OemId4;
+        //    [FieldOffset(15)]
+        //    public byte OemId5;
+        //    [FieldOffset(16)]
+        //    public long OemTableId;
+        //    [FieldOffset(24)]
+        //    public int OemRevision;
+        //    [FieldOffset(28)]
+        //    public int CreatorId;
+        //    [FieldOffset(32)]
+        //    public int CreatorRevision;
+        //    [FieldOffset(36)]
+        //    public ulong NumberOfSytemLocalities;
+        //    [FieldOffset(44)]
+        //    public IntPtr Data;
+        //    //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+        //    //public byte[] Data;
+        //}
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        internal struct SLIT
+        {
+            public int Signature;
+            public int Length;
+            public byte Revision;
+            public byte Checksum;
+            public byte OemId0;
+            public byte OemId1;
+            public byte OemId2;
+            public byte OemId3;
+            public byte OemId4;
+            public byte OemId5;
+            public long OemTableId;
+            public int OemRevision;
+            public int CreatorId;
+            public int CreatorRevision;
+            public ulong NumberOfSytemLocalities;
+            // Unused - use GetMatrix() instead.
+            //public IntPtr Data;
+
+            public byte[] GetMatrix(IntPtr slitPtr)
+            {
+                int items = (int)(NumberOfSytemLocalities * NumberOfSytemLocalities);
+                var matrix = new byte[items];
+                Marshal.Copy(slitPtr + (Length - items), matrix, 0, items);
+                return matrix;
+            }
+        }
+
+        internal static IntPtr GetSystemFirmwareTable(string providerStr, string idStr)
+        {
+            int provider = providerStr == null ? 0 : BitConverter.ToInt32(Encoding.ASCII.GetBytes(providerStr).Reverse().ToArray(), 0);
+            int id = idStr == null ? 0 : BitConverter.ToInt32(Encoding.ASCII.GetBytes(idStr).ToArray(), 0);
+            var result = IntPtr.Zero;
+
+            try
+            {
+                int size = GetSystemFirmwareTable(provider, id, result, 0);
+                if (size == 0)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(),
+                        string.Format("GetSystemFirmwareTable('{0}', '{1}') get size: {2:X}",
+                        providerStr, idStr, Marshal.GetLastWin32Error()));
+                }
+
+                result = Marshal.AllocHGlobal(size);
+                if (GetSystemFirmwareTable(provider, id, result, size) == 0)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(),
+                        string.Format("GetSystemFirmwareTable('{0}', '{1}') get data: {2:X}",
+                        providerStr, idStr, Marshal.GetLastWin32Error()));
+                }
+
+                return result;
+            }
+            catch (Exception)
+            {
+                if (result != IntPtr.Zero)
+                    Marshal.FreeHGlobal(result);
+                throw;
+            }
+        }
+
+        internal static void EnumSystemFirmwareTables(string providerStr)
+        {
+            Console.WriteLine(providerStr);
+
+            int provider = providerStr == null ? 0 : BitConverter.ToInt32(Encoding.ASCII.GetBytes(providerStr).Reverse().ToArray(), 0);
+            var result = IntPtr.Zero;
+            try
+            {
+                int size = EnumSystemFirmwareTables(provider, IntPtr.Zero, 0);
+                if (size == 0)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(),
+                        string.Format("EnumSystemFirmwareTables('{0}') get size: {1:X}",
+                            providerStr, Marshal.GetLastWin32Error()));
+                }
+
+                result = Marshal.AllocHGlobal(size);
+                if (EnumSystemFirmwareTables(provider, result, size) == 0)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(),
+                        string.Format("EnumSystemFirmwareTables('{0}') get data: {1:X}",
+                            providerStr, Marshal.GetLastWin32Error()));
+                }
+
+                Console.WriteLine("result: " + result.ToInt64().ToString("X") + " size " + size);
+                int count = size / sizeof(int);
+                Console.WriteLine("count: " + count);
+                int[] data = new int[count];
+                Marshal.Copy(result, data, 0, data.Length);
+                for (int i = 0; i < count; i++)
+                {
+                    Console.WriteLine(i + " : " + data[i] + " : " + Encoding.ASCII.GetString(BitConverter.GetBytes(data[i])));
+                }
+
+                Marshal.FreeHGlobal(result);
+            }
+            catch (Exception)
+            {
+                if (result != IntPtr.Zero)
+                    Marshal.FreeHGlobal(result);
+                throw;
+            }
+        }
+
+        [DllImport(KernelDll, SetLastError = true, ExactSpelling = true)]
+        private static extern int EnumSystemFirmwareTables(
+            int FirmwareTableProviderSignature,
+            IntPtr pFirmwareTableBuffer,
+            int BufferSize);
+
+        [DllImport(KernelDll, SetLastError = true, ExactSpelling = true)]
+        private static extern int GetSystemFirmwareTable(
+            int FirmwareTableProviderSignature,
+            int FirmwareTableID,
+            IntPtr pFirmwareTableBuffer,
+            int BufferSize);
+
+        [DllImport(KernelDll, SetLastError = true, ExactSpelling = true)]
+        private static extern int GetSystemFirmwareTable(
+            int FirmwareTableProviderSignature,
+            int FirmwareTableID,
+            ref SLIT pFirmwareTableBuffer,
+            int BufferSize);
 
         internal static IntPtr GetCurrentProcessAffinityMask()
         {

@@ -10,25 +10,25 @@ namespace mcoreinfo
         {
             try
             {
-                Console.WriteLine("Processor capabilities:");
-                CpuCapabilities.Dump();
-                Console.WriteLine();
+                //Console.WriteLine("Processor capabilities:");
+                //CpuCapabilities.Dump();
+                //Console.WriteLine();
 
-                Console.WriteLine("Logical to Physical Processor Map:");
-                CpuCoreInfo.Dump();
-                Console.WriteLine();
-                Console.WriteLine("Logical Processor to Socket Map:");
-                CpuSocketInfo.Dump();
-                Console.WriteLine();
+                //Console.WriteLine("Logical to Physical Processor Map:");
+                //CpuCoreInfo.Dump();
+                //Console.WriteLine();
+                //Console.WriteLine("Logical Processor to Socket Map:");
+                //CpuSocketInfo.Dump();
+                //Console.WriteLine();
                 Console.WriteLine("Logical Processor to NUMA Node Map:");
                 CpuNumaNodeInfo.Dump();
-                Console.WriteLine();
-                Console.WriteLine("Logical Processor to Cache Map:");
-                CpuCacheInfo.Dump();
-                Console.WriteLine();
-                Console.WriteLine("Logical Processor to Group Map:");
-                CpuGroupInfo.Dump();
-                Console.WriteLine();
+                //Console.WriteLine();
+                //Console.WriteLine("Logical Processor to Cache Map:");
+                //CpuCacheInfo.Dump();
+                //Console.WriteLine();
+                //Console.WriteLine("Logical Processor to Group Map:");
+                //CpuGroupInfo.Dump();
+                //Console.WriteLine();
 
                 return 0;
             }

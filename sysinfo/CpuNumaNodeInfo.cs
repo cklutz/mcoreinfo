@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Runtime.InteropServices;
 
 namespace SysInfo
 {
@@ -22,6 +24,26 @@ namespace SysInfo
                 tw.Write("NUMA Node ");
                 tw.Write(i);
                 tw.WriteLine();
+            }
+
+            //NativeMethods.EnumSystemFirmwareTables("RSMB");
+            //NativeMethods.EnumSystemFirmwareTables("ACPI");
+
+            //Console.WriteLine(NativeMethods.GetSystemFirmwareTable("RSMB", null).ToInt64().ToString());
+            try
+            {
+                var ptr = NativeMethods.GetSystemFirmwareTable("ACPI", "SLIT");
+                var slit = Marshal.PtrToStructure<NativeMethods.SLIT>(ptr);
+                var matrix = slit.GetMatrix(ptr);
+
+                for (int i = 0; i < matrix.Length; i++)
+                {
+                    Console.WriteLine(matrix[i]);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
             }
         }
 
