@@ -247,6 +247,29 @@ namespace SysInfo
             //
             // Additional stuff:
             // - https://www.codeproject.com/Articles/215458/Virtualization-for-System-Programmers
+            //
+            // Additionally, the MSR register is not accessible from user mode code.
+            // So a kernel module, probably demand loaded like procmon, etc. does, would be
+            // required.
+            // Here is some more information on that:
+            // - https://github.com/killswitch-GUI/HotLoad-Driver
+            // - https://github.com/iceb0y/ntdrvldr
+            // - http://stackoverflow.com/questions/28769534/how-does-a-windows-program-load-a-kernel-driver-without-rebooting-or-calling-cre
+            //      It goes through all the motions you'd normally make by hand when you install a driver:
+            //      * The driver is embedded as a resource in the executable file. Something you can see with Visual Studio,
+            //        use File + Open + File and select, say, ProcExp.exe. Open the "BINRES" node, you'll see two resources
+            //        (150 and 152). Which one is used depends on your operating system version.
+            //      * The content of the resource is written to your %TEMP% directory with the filename PROCMON23.SYS.
+            //        Windows requires drivers to be files on disk.
+            //      * It writes the required driver registry keys in HKLM\System\CurrentControlSet\Services,
+            //        creating the PROCMON23 subkey
+            //      * It uses GetProcAddress() on ntdll.dll to obtain the native NtLoadDriver() entrypoint.
+            //        Which is the native equivalent of the CreateService() winapi function.
+            //      * The call through the obtained function pointer activates the driver.
+            //
+            // Then, if we _do_ implement a driver (native code, obviously), we could also do the same
+            // (in a separate native, resource-bundled DLL, or in said driver) for the CPUID.
+
             {"EPT", "Supports Intel extended page tables (SLAT)"}
         };
 
