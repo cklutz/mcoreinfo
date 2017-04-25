@@ -9,71 +9,110 @@ namespace SysInfo
 {
     public class CpuCapabilities
     {
-        public static void Dump(TextWriter tw = null)
+        public static void Dump(TextWriter tw = null, bool virtualizationOnly = false)
         {
             tw = tw ?? Console.Out;
 
-            tw.WriteLine("Vendor: " + Vendor);
-            tw.WriteLine("Brand : " + Brand);
+            tw.WriteLine(ProcessorBrand);
 
-            tw.WriteLine("Features:");
-            SupportMessage("HTT", HTT, tw);
-            SupportMessage("HYPERVISOR", HYPERVISOR, tw);
-            SupportMessage("VMX", VMX, tw);
-            SupportMessage("SVM", SVM, tw);
-            SupportMessage("SMX", SMX, tw);
-            SupportMessage("NX", NX, tw);
-            SupportMessage("3DNOW", _3DNOW, tw);
-            SupportMessage("3DNOWEXT", _3DNOWEXT, tw);
-            SupportMessage("ABM", ABM, tw);
-            SupportMessage("ADX", ADX, tw);
-            SupportMessage("AES", AES, tw);
-            SupportMessage("AVX", AVX, tw);
-            SupportMessage("AVX2", AVX2, tw);
-            SupportMessage("AVX512CD", AVX512CD, tw);
-            SupportMessage("AVX512ER", AVX512ER, tw);
-            SupportMessage("AVX512F", AVX512F, tw);
-            SupportMessage("AVX512PF", AVX512PF, tw);
-            SupportMessage("BMI1", BMI1, tw);
-            SupportMessage("BMI2", BMI2, tw);
-            SupportMessage("CLFSH", CLFSH, tw);
-            SupportMessage("CMPXCHG16B", CMPXCHG16B, tw);
-            SupportMessage("CX8", CX8, tw);
-            SupportMessage("ERMS", ERMS, tw);
-            SupportMessage("F16C", F16C, tw);
-            SupportMessage("FMA", FMA, tw);
-            SupportMessage("FSGSBASE", FSGSBASE, tw);
-            SupportMessage("FXSR", FXSR, tw);
-            SupportMessage("HLE", HLE, tw);
-            SupportMessage("INVPCID", INVPCID, tw);
-            SupportMessage("LAHF", LAHF, tw);
-            SupportMessage("LZCNT", LZCNT, tw);
-            SupportMessage("MMX", MMX, tw);
-            SupportMessage("MMXEXT", MMXEXT, tw);
-            SupportMessage("MONITOR", MONITOR, tw);
-            SupportMessage("MOVBE", MOVBE, tw);
-            SupportMessage("MSR", MSR, tw);
-            SupportMessage("OSXSAVE", OSXSAVE, tw);
-            SupportMessage("PCLMULQDQ", PCLMULQDQ, tw);
-            SupportMessage("POPCNT", POPCNT, tw);
-            SupportMessage("PREFETCHWT1", PREFETCHWT1, tw);
-            SupportMessage("RDRAND", RDRAND, tw);
-            SupportMessage("RDSEED", RDSEED, tw);
-            SupportMessage("RDTSCP", RDTSCP, tw);
-            SupportMessage("RTM", RTM, tw);
-            SupportMessage("SEP", SEP, tw);
-            SupportMessage("SHA", SHA, tw);
-            SupportMessage("SSE", SSE, tw);
-            SupportMessage("SSE2", SSE2, tw);
-            SupportMessage("SSE3", SSE3, tw);
-            SupportMessage("SSE4.1", SSE41, tw);
-            SupportMessage("SSE4.2", SSE42, tw);
-            SupportMessage("SSE4a", SSE4a, tw);
-            SupportMessage("SSSE3", SSSE3, tw);
-            SupportMessage("SYSCALL", SYSCALL, tw);
-            SupportMessage("TBM", TBM, tw);
-            SupportMessage("XOP", XOP, tw);
-            SupportMessage("XSAVE", XSAVE, tw);
+            string manufacturer = "Unknown";
+            if (IsIntelProcessor)
+                manufacturer = "Intel";
+            else if (IsAmdProcessor)
+                manufacturer = "AMD";
+            else if (s_features.Value.IsLikelyVirtualMachine)
+                manufacturer = "Virtual Machine";
+            
+            tw.WriteLine("{0} Family {1} Model {2} Stepping {3}, {4}",
+                manufacturer, ProcessorFamily, ProcessorModel, ProcessorStepping, ProcessorVendor);
+
+            if (virtualizationOnly)
+            {
+                SupportMessage("HYPERVISOR", HYPERVISOR, tw);
+                if (IsIntelProcessor)
+                {
+                    SupportMessage("VMX", VMX, tw);
+                    //TODO: EPT: SupportMessage("EPT", EPT, tw);
+                }
+                else if (IsAmdProcessor)
+                {
+                    SupportMessage("SVM", SVM, tw);
+                    SupportMessage("NP", NP, tw);
+                }
+            }
+            else
+            {
+
+                SupportMessage("HTT", HTT, tw);
+                SupportMessage("HYPERVISOR", HYPERVISOR, tw);
+                SupportMessage("VMX", VMX, tw);
+                SupportMessage("SVM", SVM, tw);
+                SupportMessage("SMX", SMX, tw);
+                SupportMessage("NX", NX, tw);
+                SupportMessage("3DNOW", _3DNOW, tw);
+                SupportMessage("3DNOWEXT", _3DNOWEXT, tw);
+                SupportMessage("ABM", ABM, tw);
+                SupportMessage("ADX", ADX, tw);
+                SupportMessage("AES", AES, tw);
+                SupportMessage("AVX", AVX, tw);
+                SupportMessage("AVX2", AVX2, tw);
+                SupportMessage("AVX512CD", AVX512CD, tw);
+                SupportMessage("AVX512ER", AVX512ER, tw);
+                SupportMessage("AVX512F", AVX512F, tw);
+                SupportMessage("AVX512PF", AVX512PF, tw);
+                SupportMessage("BMI1", BMI1, tw);
+                SupportMessage("BMI2", BMI2, tw);
+                SupportMessage("CLFSH", CLFSH, tw);
+                SupportMessage("CMPXCHG16B", CMPXCHG16B, tw);
+                SupportMessage("CX8", CX8, tw);
+                SupportMessage("ERMS", ERMS, tw);
+                SupportMessage("F16C", F16C, tw);
+                SupportMessage("FMA", FMA, tw);
+                SupportMessage("FSGSBASE", FSGSBASE, tw);
+                SupportMessage("FXSR", FXSR, tw);
+                SupportMessage("HLE", HLE, tw);
+                SupportMessage("INVPCID", INVPCID, tw);
+                SupportMessage("LAHF", LAHF, tw);
+                SupportMessage("LZCNT", LZCNT, tw);
+                SupportMessage("MMX", MMX, tw);
+                SupportMessage("MMXEXT", MMXEXT, tw);
+                SupportMessage("MONITOR", MONITOR, tw);
+                SupportMessage("MOVBE", MOVBE, tw);
+                SupportMessage("MSR", MSR, tw);
+                SupportMessage("OSXSAVE", OSXSAVE, tw);
+                SupportMessage("PCLMULQDQ", PCLMULQDQ, tw);
+                SupportMessage("POPCNT", POPCNT, tw);
+                SupportMessage("PREFETCHWT1", PREFETCHWT1, tw);
+                SupportMessage("RDRAND", RDRAND, tw);
+                SupportMessage("RDSEED", RDSEED, tw);
+                SupportMessage("RDTSCP", RDTSCP, tw);
+                SupportMessage("RTM", RTM, tw);
+                SupportMessage("SEP", SEP, tw);
+                SupportMessage("SHA", SHA, tw);
+                SupportMessage("SSE", SSE, tw);
+                SupportMessage("SSE2", SSE2, tw);
+                SupportMessage("SSE3", SSE3, tw);
+                SupportMessage("SSE4.1", SSE41, tw);
+                SupportMessage("SSE4.2", SSE42, tw);
+                SupportMessage("SSE4a", SSE4a, tw);
+                SupportMessage("SSSE3", SSSE3, tw);
+                SupportMessage("SYSCALL", SYSCALL, tw);
+                SupportMessage("TBM", TBM, tw);
+                SupportMessage("XOP", XOP, tw);
+                SupportMessage("XSAVE", XSAVE, tw);
+
+                tw.WriteLine();
+                tw.Write("Maximum implemented CPUID leaves: {0:X8} (Basic)", MaxBasicLeave.ToInt64());
+                if (MaxExtendedLeave != IntPtr.Zero)
+                {
+                    tw.Write(", {0:X8} (Extended).", MaxExtendedLeave.ToInt64());
+                }
+                else
+                {
+                    tw.Write(".");
+                }
+                tw.WriteLine();
+            }
         }
 
         private static readonly Dictionary<string, string> s_descriptions = new Dictionary<string, string>
@@ -174,15 +213,15 @@ namespace SysInfo
             { "SYSCALL", "Supports SYSCALL/SYSRET instructions" },
             { "SHA", "Supports Intel SHA extensions" },
             { "TBM", "Supports trading bit manipulation" },
-            { "XOP", "Supports XOP instruction set" }
+            { "XOP", "Supports XOP instruction set" },
+            { "NP", "Supports AMD ntested page tables" },
+            { "EPT", "Supports Intel extended page tables (SLAT)" }
         };
 
         private static readonly Lazy<int> s_maxFeatureName = new Lazy<int>(() => s_descriptions.Keys.Max(k => k.Length));
 
         private static void SupportMessage(string what, bool isSupported, TextWriter tw)
         {
-            //tw.WriteLine("{0} {1}", what, isSupported ? "supported" : "not supported");
-
             string description;
             if (s_descriptions.TryGetValue(what, out description))
             {
@@ -195,8 +234,35 @@ namespace SysInfo
 
         }
 
-        public static string Vendor => CpuFeatures.CpuVendor;
-        public static string Brand => CpuFeatures.CpuBrand;
+        public static bool IsIntelProcessor => CpuFeatures.IsIntel;
+        public static bool IsAmdProcessor => CpuFeatures.IsAmd;
+        public static IntPtr MaxBasicLeave { get; private set; }
+        public static IntPtr MaxExtendedLeave { get; private set; }
+
+        public static int ProcessorStepping => CpuFeatures.Stepping;
+
+        public static int ProcessorFamily
+        {
+            get
+            {
+                if (CpuFeatures.Family == 15)
+                    return CpuFeatures.Family + CpuFeatures.ExtendedFamily;
+                return CpuFeatures.Family;
+            }
+        }
+
+        public static int ProcessorModel
+        {
+            get
+            {
+                if (CpuFeatures.Family == 15 || CpuFeatures.Family == 6)
+                    return CpuFeatures.Model + (CpuFeatures.ExtendedModel << 4);
+                return CpuFeatures.Model;
+            }
+        }
+
+        public static string ProcessorVendor => CpuFeatures.CpuVendor;
+        public static string ProcessorBrand => CpuFeatures.CpuBrand;
         // ReSharper disable InconsistentNaming
         public static bool SSE3 => CpuFeatures.Func1Ecx[0];
         public static bool PCLMULQDQ => CpuFeatures.Func1Ecx[1];
@@ -256,6 +322,7 @@ namespace SysInfo
         public static bool VMX => CpuFeatures.Func1Ecx[5];
         public static bool SMX => CpuFeatures.Func1Ecx[6];
         public static bool NX => CpuFeatures.Func81Edx[20];
+        public static bool NP => CpuFeatures.IsAmd && CpuFeatures.Func8AEdx[0];
         // ReSharper restore InconsistentNaming
 
         private static Features CpuFeatures => s_features.Value;
@@ -289,8 +356,7 @@ namespace SysInfo
                     Buffer.BlockCopy(m_data[0], 1 * sizeof(int), vendor, 0, sizeof(int));
                     Buffer.BlockCopy(m_data[0], 3 * sizeof(int), vendor, 4, sizeof(int));
                     Buffer.BlockCopy(m_data[0], 2 * sizeof(int), vendor, 8, sizeof(int));
-                    CpuVendor = Encoding.ASCII.GetString(vendor);
-
+                    CpuVendor = Encoding.ASCII.GetString(vendor).TrimEnd(' ', '\t', '\0');
                     if (CpuVendor == "GenuineIntel")
                     {
                         IsIntel = true;
@@ -299,11 +365,26 @@ namespace SysInfo
                     {
                         IsAmd = true;
                     }
-
+                    else if (CpuVendor == "KVMKVMKVM" ||
+                             CpuVendor == "Microsoft Hv" ||
+                             CpuVendor == " lrpepyh vr" || // => "prl hyperv" (Parallels)
+                             CpuVendor == "VMwareVMware" ||
+                             CpuVendor == "XenVMMXenVMM")
+                    {
+                        IsLikelyVirtualMachine = true;
+                    }
 
                     // load bitset with flags for function 0x00000001  
                     if (nIds >= 1)
                     {
+                        int eaxValue = m_data[1][eax];
+                        Stepping = (byte)((eaxValue >> 0) & ((1 << 4) - 1));
+                        Model = (byte)((eaxValue >> 4) & ((1 << 4) - 1));
+                        Family = (byte)((eaxValue >> 8) & ((1 << 4) - 1));
+                        ProcessorType = (byte)((eaxValue >> 12) & ((1 << 2) - 1));
+                        ExtendedModel = (byte)((eaxValue >> 16) & ((1 << 4) - 1));
+                        ExtendedFamily = (byte)((eaxValue >> 20) & ((1 << 8) - 1));
+
                         Func1Ecx = Set(m_data[1][ecx]);
                         Func1Edx = Set(m_data[1][edx]);
                     }
@@ -340,10 +421,25 @@ namespace SysInfo
                         Buffer.BlockCopy(m_extdata[2], 0, brand, 0, 16);
                         Buffer.BlockCopy(m_extdata[3], 0, brand, 16, 16);
                         Buffer.BlockCopy(m_extdata[4], 0, brand, 32, 16);
-                        CpuBrand = Encoding.ASCII.GetString(brand);
+                        CpuBrand = Encoding.ASCII.GetString(brand).TrimEnd(' ', '\t', '\0');
                     }
+
+                    if (nExIds >= 0x8000000A)
+                    {
+                        Func8AEdx = Set(m_extdata[10][edx]);
+                    }
+
+                    MaxBasicLeave = new IntPtr(nIds);
+                    MaxExtendedLeave = new IntPtr(nExIds);
                 }
             }
+
+            public readonly byte Stepping;
+            public readonly byte Model;
+            public readonly byte Family;
+            public readonly byte ProcessorType;
+            public readonly byte ExtendedModel;
+            public readonly byte ExtendedFamily;
 
             private readonly List<int[]> m_data = new List<int[]>();
             private readonly List<int[]> m_extdata = new List<int[]>();
@@ -351,12 +447,14 @@ namespace SysInfo
             public readonly string CpuBrand;
             public readonly bool IsIntel;
             public readonly bool IsAmd;
+            public readonly bool IsLikelyVirtualMachine;
             public readonly BitArray Func1Ecx;
             public readonly BitArray Func1Edx;
             public readonly BitArray Func7Ebx;
             public readonly BitArray Func7Ecx;
             public readonly BitArray Func81Ecx;
             public readonly BitArray Func81Edx;
+            public readonly BitArray Func8AEdx;
 
             private static BitArray Set(int value)
             {

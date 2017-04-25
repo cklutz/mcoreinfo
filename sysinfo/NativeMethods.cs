@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,47 +14,12 @@ namespace SysInfo
         private const string KernelDll = "kernel32.dll";
         private const string NtDll = "ntdll.dll";
 
-        //[StructLayout(LayoutKind.Explicit)]
-        //internal class SLIT
-        //{
-        //    [FieldOffset(0)]
-        //    public int Signature;
-        //    [FieldOffset(4)]
-        //    public int Length;
-        //    [FieldOffset(8)]
-        //    public byte Revision;
-        //    [FieldOffset(9)]
-        //    public byte Checksum;
-        //    [FieldOffset(10)]
-        //    public byte OemId0;
-        //    [FieldOffset(11)]
-        //    public byte OemId1;
-        //    [FieldOffset(12)]
-        //    public byte OemId2;
-        //    [FieldOffset(13)]
-        //    public byte OemId3;
-        //    [FieldOffset(14)]
-        //    public byte OemId4;
-        //    [FieldOffset(15)]
-        //    public byte OemId5;
-        //    [FieldOffset(16)]
-        //    public long OemTableId;
-        //    [FieldOffset(24)]
-        //    public int OemRevision;
-        //    [FieldOffset(28)]
-        //    public int CreatorId;
-        //    [FieldOffset(32)]
-        //    public int CreatorRevision;
-        //    [FieldOffset(36)]
-        //    public ulong NumberOfSytemLocalities;
-        //    [FieldOffset(44)]
-        //    public IntPtr Data;
-        //    //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-        //    //public byte[] Data;
-        //}
+        // -----------------------------------------------------------------------------------
+        // ACPI defitions (see http://www.acpi.info)
+        // -----------------------------------------------------------------------------------
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        internal struct SLIT
+        internal struct DESCRIPTION_HEADER
         {
             public int Signature;
             public int Length;
@@ -69,20 +35,200 @@ namespace SysInfo
             public int OemRevision;
             public int CreatorId;
             public int CreatorRevision;
-            public ulong NumberOfSytemLocalities;
-            // Unused - use GetMatrix() instead.
-            //public IntPtr Data;
+        }
 
-            public byte[] GetMatrix(IntPtr slitPtr)
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        internal struct SLIT
+        {
+            public DESCRIPTION_HEADER Header;
+            public ulong NumberOfSytemLocalities;
+            // Unused - Built up manually inside GetSystemLocalityDistanceInformationTable()
+            //public IntPtr Entries;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        internal struct SRAT
+        {
+            public DESCRIPTION_HEADER Header;
+            public int Reserved;
+            public long Reserverd;
+        }
+
+        internal class SystemResourceAffinityTable
+        {
+            public SystemResourceAffinityTable()
             {
-                int items = (int)(NumberOfSytemLocalities * NumberOfSytemLocalities);
-                var matrix = new byte[items];
-                Marshal.Copy(slitPtr + (Length - items), matrix, 0, items);
-                return matrix;
+                ProcessorApicAffinities = new List<ProcessorLocalApicAffinity>();
+                ProcessorX2ApicAffinities = new List<ProcessorLocalx2ApicAffinity>();
+                MemoryAffinities = new List<MemoryAffinity>();
+            }
+
+            public List<ProcessorLocalApicAffinity> ProcessorApicAffinities;
+            public List<ProcessorLocalx2ApicAffinity> ProcessorX2ApicAffinities;
+            public List<MemoryAffinity> MemoryAffinities;
+        }
+
+        internal class ProcessorLocalApicAffinity
+        {
+            public int ProximityDomain;
+            public byte ApicId;
+            public int Flags;
+            public byte LocalSapicEid;
+            public int ClockDomain;
+
+            public override string ToString()
+            {
+                return $"PXM={ProximityDomain}, ApicId={ApicId}, Flags={Convert.ToString(Flags, 2)}, LocalSapicEid={LocalSapicEid}, ClockDomain={ClockDomain}";
             }
         }
 
-        internal static IntPtr GetSystemFirmwareTable(string providerStr, string idStr)
+        internal class ProcessorLocalx2ApicAffinity
+        {
+            public int ProximityDomain;
+            public int X2ApicId;
+            public int Flags;
+            public int ClockDomain;
+
+            public override string ToString()
+            {
+                return $"PXM={ProximityDomain}, Flags={Convert.ToString(Flags, 2)}, X2ApicId={X2ApicId}, ClockDomain={ClockDomain}";
+            }
+        }
+
+        internal class MemoryAffinity
+        {
+            public int ProximityDomain;
+            public long BaseAddress;
+            public long Length;
+            public int Flags;
+
+            public override string ToString()
+            {
+                return $"PXM={ProximityDomain}, Flags={Convert.ToString(Flags, 2)}, BaseAddress={BaseAddress:X16}, Length={Length:X16}";
+            }
+        }
+
+        // -----------------------------------------------------------------------------------
+
+        internal static SystemResourceAffinityTable GetSystemResourceAffinityTable()
+        {
+            return GetSystemFirmwareTable("ACPI", "SRAT", raw =>
+            {
+                var result = new SystemResourceAffinityTable();
+
+                var srat = Marshal.PtrToStructure<SRAT>(raw);
+                IntPtr start = raw + Marshal.SizeOf(srat);
+
+                int dataLen = srat.Header.Length - Marshal.SizeOf(srat);
+                int pos = 0;
+                while (pos < dataLen)
+                {
+                    // First two bytes of every sub table are type and size.
+                    byte type = Marshal.ReadByte(start, pos);
+                    byte len = Marshal.ReadByte(start, pos + sizeof(byte));
+
+                    switch (type)
+                    {
+                        case 0: // Processor Local APIC/SAPIC Affinity Structure
+                            {
+                                int flags = Marshal.ReadInt32(start, pos + 4);
+                                // Flags are not 1 (Enabled), than the entry is a static entry, that
+                                // is not enabled and most likely only used as a placeholder.
+                                if ((flags & 1) != 0)
+                                {
+                                    var table = new ProcessorLocalApicAffinity();
+
+                                    byte[] pxm = new byte[4];
+                                    pxm[0] = Marshal.ReadByte(start, pos + 2);
+                                    pxm[1] = Marshal.ReadByte(start, pos + 9);
+                                    pxm[2] = Marshal.ReadByte(start, pos + 10);
+                                    pxm[3] = Marshal.ReadByte(start, pos + 11);
+
+                                    table.ProximityDomain = BitConverter.ToInt32(pxm, 0);
+                                    table.ApicId = Marshal.ReadByte(start, pos + 3);
+                                    table.Flags = flags;
+                                    table.LocalSapicEid = Marshal.ReadByte(start, pos + 8);
+                                    table.ClockDomain = Marshal.ReadInt32(start, pos + 12);
+
+                                    result.ProcessorApicAffinities.Add(table);
+                                }
+                            }
+                            break;
+                        case 1: // Memory Affinity Structure
+                            {
+                                int flags = Marshal.ReadInt32(start, pos + 28);
+                                if ((flags & 1) != 0)
+                                {
+                                    var table = new MemoryAffinity();
+                                    table.ProximityDomain = Marshal.ReadInt32(start, pos + 2);
+                                    table.BaseAddress = Combine(Marshal.ReadInt32(start, pos + 8), Marshal.ReadInt32(start, pos + 12));
+                                    table.Length = Combine(Marshal.ReadInt32(start, pos + 16), Marshal.ReadInt32(start, pos + 20));
+                                    table.Flags = flags;
+
+                                    result.MemoryAffinities.Add(table);
+                                }
+                            }
+                            break;
+                        case 2: // Processor Local x2APIC Affinity Structure
+                            {
+                                int flags = Marshal.ReadInt32(start, pos + 12);
+                                if ((flags & 1) != 0)
+                                {
+                                    var table = new ProcessorLocalx2ApicAffinity();
+                                    table.ProximityDomain = Marshal.ReadInt32(start, pos + 4);
+                                    table.X2ApicId = Marshal.ReadInt32(start, pos + 8);
+                                    table.Flags = flags;
+                                    table.ClockDomain = Marshal.ReadInt32(start, pos + 16);
+
+                                    result.ProcessorX2ApicAffinities.Add(table);
+                                }
+                            }
+                            break;
+                    }
+
+                    pos += len;
+                }
+
+                return result;
+            });
+        }
+
+        internal static long Combine(int low, int high)
+        {
+            unchecked
+            {
+                return (long)(((ulong)(uint)high) << 32) | (uint)low;
+            }
+        }
+
+        internal static byte[,] GetSystemLocalityDistanceInformationTable()
+        {
+            return GetSystemFirmwareTable("ACPI", "SLIT", raw =>
+            {
+                var slit = Marshal.PtrToStructure<SLIT>(raw);
+                int items = (int)(slit.NumberOfSytemLocalities * slit.NumberOfSytemLocalities);
+
+                IntPtr start = raw + (slit.Header.Length - items);
+
+                var result = new byte[slit.NumberOfSytemLocalities, slit.NumberOfSytemLocalities];
+
+                int j = -1;
+                int k = 0;
+                for (int i = 0; i < items; i++)
+                {
+                    if ((i % (int)slit.NumberOfSytemLocalities) == 0)
+                    {
+                        j++;
+                        k = 0;
+                    }
+                    result[j, k] = Marshal.ReadByte(start, i);
+                    k++;
+                }
+                return result;
+            });
+        }
+
+        internal static TResult GetSystemFirmwareTable<TResult>(string providerStr, string idStr, Func<IntPtr, TResult> converter)
         {
             int provider = providerStr == null ? 0 : BitConverter.ToInt32(Encoding.ASCII.GetBytes(providerStr).Reverse().ToArray(), 0);
             int id = idStr == null ? 0 : BitConverter.ToInt32(Encoding.ASCII.GetBytes(idStr).ToArray(), 0);
@@ -93,33 +239,37 @@ namespace SysInfo
                 int size = GetSystemFirmwareTable(provider, id, result, 0);
                 if (size == 0)
                 {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(),
-                        string.Format("GetSystemFirmwareTable('{0}', '{1}') get size: {2:X}",
-                        providerStr, idStr, Marshal.GetLastWin32Error()));
+                    int le = Marshal.GetLastWin32Error();
+                    // ERROR_ELEMENT_NOT_FOUND - unknown/invalid id
+                    // ERROR_INVALID_FUNCTION - unknown/invalid provider
+                    if (le == ERROR_ELEMENT_NOT_FOUND || le == ERROR_INVALID_FUNCTION)
+                    {
+                        return default(TResult);
+                    }
+
+                    throw new Win32Exception(le,
+                        $"GetSystemFirmwareTable('{providerStr}', '{idStr}') get size: {le:X}");
                 }
 
                 result = Marshal.AllocHGlobal(size);
                 if (GetSystemFirmwareTable(provider, id, result, size) == 0)
                 {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(),
-                        string.Format("GetSystemFirmwareTable('{0}', '{1}') get data: {2:X}",
-                        providerStr, idStr, Marshal.GetLastWin32Error()));
+                    int le = Marshal.GetLastWin32Error();
+                    throw new Win32Exception(le,
+                        $"GetSystemFirmwareTable('{providerStr}', '{idStr}') get data: {le:X}");
                 }
 
-                return result;
+                return converter(result);
             }
-            catch (Exception)
+            finally
             {
                 if (result != IntPtr.Zero)
                     Marshal.FreeHGlobal(result);
-                throw;
             }
         }
 
-        internal static void EnumSystemFirmwareTables(string providerStr)
+        internal static int[] EnumSystemFirmwareTables(string providerStr)
         {
-            Console.WriteLine(providerStr);
-
             int provider = providerStr == null ? 0 : BitConverter.ToInt32(Encoding.ASCII.GetBytes(providerStr).Reverse().ToArray(), 0);
             var result = IntPtr.Zero;
             try
@@ -127,36 +277,32 @@ namespace SysInfo
                 int size = EnumSystemFirmwareTables(provider, IntPtr.Zero, 0);
                 if (size == 0)
                 {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(),
-                        string.Format("EnumSystemFirmwareTables('{0}') get size: {1:X}",
-                            providerStr, Marshal.GetLastWin32Error()));
+                    int le = Marshal.GetLastWin32Error();
+                    // ERROR_INVALID_FUNCTION - unknown/invalid provider
+                    if (le == ERROR_INVALID_FUNCTION)
+                    {
+                        return null;
+                    }
+
+                    throw new Win32Exception(le, $"EnumSystemFirmwareTables('{providerStr}') get size: {le:X}");
                 }
 
                 result = Marshal.AllocHGlobal(size);
                 if (EnumSystemFirmwareTables(provider, result, size) == 0)
                 {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(),
-                        string.Format("EnumSystemFirmwareTables('{0}') get data: {1:X}",
-                            providerStr, Marshal.GetLastWin32Error()));
+                    int le = Marshal.GetLastWin32Error();
+                    throw new Win32Exception(le, $"EnumSystemFirmwareTables('{providerStr}') get data: {le:X}");
                 }
 
-                Console.WriteLine("result: " + result.ToInt64().ToString("X") + " size " + size);
                 int count = size / sizeof(int);
-                Console.WriteLine("count: " + count);
                 int[] data = new int[count];
                 Marshal.Copy(result, data, 0, data.Length);
-                for (int i = 0; i < count; i++)
-                {
-                    Console.WriteLine(i + " : " + data[i] + " : " + Encoding.ASCII.GetString(BitConverter.GetBytes(data[i])));
-                }
-
-                Marshal.FreeHGlobal(result);
+                return data;
             }
-            catch (Exception)
+            finally
             {
                 if (result != IntPtr.Zero)
                     Marshal.FreeHGlobal(result);
-                throw;
             }
         }
 
@@ -173,12 +319,7 @@ namespace SysInfo
             IntPtr pFirmwareTableBuffer,
             int BufferSize);
 
-        [DllImport(KernelDll, SetLastError = true, ExactSpelling = true)]
-        private static extern int GetSystemFirmwareTable(
-            int FirmwareTableProviderSignature,
-            int FirmwareTableID,
-            ref SLIT pFirmwareTableBuffer,
-            int BufferSize);
+        // --------------------------------------------------------------------------------------
 
         internal static IntPtr GetCurrentProcessAffinityMask()
         {
@@ -400,6 +541,8 @@ namespace SysInfo
         }
 
         internal const int ERROR_INSUFFICIENT_BUFFER = 122;
+        internal const int ERROR_ELEMENT_NOT_FOUND = 1168;
+        internal const int ERROR_INVALID_FUNCTION = 1;
 
         internal static void GetLogicalProcessorInformationEx<T>(int relation, Func<T, bool> worker)
             where T : ISystemLogicalProcessoInformation
