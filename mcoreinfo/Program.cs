@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using SysInfo;
 
 namespace mcoreinfo
@@ -63,7 +62,6 @@ Usage: mcoreinfo [-c][-f][-g][-l][-n][-s][-m][-v]
             {
                 if (dumpCoreFeatures || dumpVirt)
                 {
-                    Console.WriteLine("Processor capabilities:");
                     CpuCapabilities.Dump(null, dumpVirt);
                     Console.WriteLine();
                 }

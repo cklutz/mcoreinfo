@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Microsoft.Win32;
 
 namespace SysInfo
 {
@@ -22,9 +23,15 @@ namespace SysInfo
                 manufacturer = "AMD";
             else if (s_features.Value.IsLikelyVirtualMachine)
                 manufacturer = "Virtual Machine";
-            
+
+            if (X64)
+            {
+                manufacturer += "64";
+            }
+
             tw.WriteLine("{0} Family {1} Model {2} Stepping {3}, {4}",
                 manufacturer, ProcessorFamily, ProcessorModel, ProcessorStepping, ProcessorVendor);
+            tw.WriteLine("Microcode signature: {0}", GetMicrocodeDisplayString(MicrocodeUpdateSignature));
 
             if (virtualizationOnly)
             {
@@ -42,13 +49,13 @@ namespace SysInfo
             }
             else
             {
-
                 SupportMessage("HTT", HTT, tw);
                 SupportMessage("HYPERVISOR", HYPERVISOR, tw);
                 SupportMessage("VMX", VMX, tw);
                 SupportMessage("SVM", SVM, tw);
                 SupportMessage("SMX", SMX, tw);
                 SupportMessage("NX", NX, tw);
+                SupportMessage("X64", X64, tw);
                 SupportMessage("3DNOW", _3DNOW, tw);
                 SupportMessage("3DNOWEXT", _3DNOWEXT, tw);
                 SupportMessage("ABM", ABM, tw);
@@ -115,107 +122,132 @@ namespace SysInfo
             }
         }
 
+        private static string GetMicrocodeDisplayString(byte[] data)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (i < 8)
+                {
+                    sb.AppendFormat("{0:X}", data[i]);
+                }
+                else if (data[i] > 0)
+                {
+                    sb.AppendFormat("{0:X}", data[i]);
+                }
+            }
+            return sb.ToString();
+        }
+
         private static readonly Dictionary<string, string> s_descriptions = new Dictionary<string, string>
         {
-            { "HTT", "Hyperthreading enabled" },
-            { "HYPERVISOR", "Hypervisor is present" },
-            { "VMX", "Supports Intel hardwareassisted virtualization" },
-            { "SVM", "Supports AMD hardwareassisted virtualization" },
-            { "X64", "Supports 64bit mode" },
-            { "SMX", "Supports Intel trusted execution" },
-            { "SKINIT", "Supports AMD SKINIT" },
-            { "NX", "Supports noexecute page protection" },
-            { "SMEP", "Supports Supervisor Mode Execution Prevention" },
-            { "SMAP", "Supports Supervisor Mode Access Prevention" },
-            { "PAGE1GB", "Supports 1 GB large pages" },
-            { "PAE", "Supports > 32bit physical addresses" },
-            { "PAT", "Supports Page Attribute Table" },
-            { "PSE", "Supports 4 MB pages" },
-            { "PSE36", "Supports > 32bit address 4 MB pages" },
-            { "PGE", "Supports global bit in page tables" },
-            { "SS", "Supports bus snooping for cache operations" },
-            { "VME", "Supports Virtual8086 mode" },
-            { "FSGSBASE", "Supports direct GS/FS base access" },
-            { "FPU", "Implements i387 floating point instructions" },
-            { "MMX", "Supports MMX instruction set" },
-            { "MMXEXT", "Implements AMD MMX extensions" },
-            { "3DNOW", "Supports 3DNow! instructions" },
-            { "3DNOWEXT", "Supports 3DNow! extension instructions" },
-            { "SSE", "Supports Streaming SIMD Extensions" },
-            { "SSE2", "Supports Streaming SIMD Extensions 2" },
-            { "SSE3", "Supports Streaming SIMD Extensions 3" },
-            { "SSSE3", "Supports Supplemental SIMD Extensions 3" },
-            { "SSE4a", "Supports Streaming SIMDR Extensions 4a" },
-            { "SSE4.1", "Supports Streaming SIMD Extensions 4.1" },
-            { "SSE4.2", "Supports Streaming SIMD Extensions 4.2" },
-            { "AES", "Supports AES extensions" },
-            { "PREFETCHWT1", "Supports PREFETCHWT1 instruction" },
-            { "ABM", "Supports advanced bit manipulation" },
-            { "ERMS", "Enhanced REP MOVSB/STOSB" },
-            { "AVX", "Supports AVX intruction extensions" },
-            { "AVX2", "Supports AVX intruction extensions" },
-            { "AVX512CD", "Supports AVX-512 Conflict Detection intructions" },
-            { "AVX512ER", "Supports AVX-512 Exponential and Reciprocal instructions" },
-            { "AVX512F", "Supports AVX-512 Foundation" },
-            { "AVX512PF", "Supports AVX-512 Prefetch instructions" },
-            { "FMA", "Supports FMA extensions using YMM state" },
-            { "MSR", "Implements RDMSR/WRMSR instructions" },
-            { "MTRR", "Supports Memory Type Range Registers" },
-            { "XSAVE", "Supports XSAVE/XRSTOR instructions" },
-            { "OSXSAVE", "Supports XSETBV/XGETBV instructions" },
-            { "RDRAND", "Supports RDRAND instruction" },
-            { "RDSEED", "Supports RDSEED instruction" },
-            { "CMOV", "Supports CMOVcc instruction" },
-            { "CLFSH", "Supports CLFLUSH instruction" },
-            { "CX8", "Supports compare and exchange 8byte instructions" },
-            { "CMPXCHG16B", "Supports CMPXCHG16B instruction" },
-            { "BMI1", "Supports bit manipulation extensions 1" },
-            { "BMI2", "Supports bit manipulation extensions 2" },
-            { "ADX", "Supports ADCX/ADOX instructions" },
-            { "DCA", "Supports prefetch from memorymapped device" },
-            { "F16C", "Supports halfprecision instruction" },
-            { "FXSR", "Supports FXSAVE/FXSTOR instructions" },
-            { "FFXSR", "Supports optimized FXSAVE/FSRSTOR instruction" },
-            { "MONITOR", "Supports MONITOR and MWAIT instructions" },
-            { "MOVBE", "Supports MOVBE instruction" },
-            { "ERMSB", "Supports Enhanced REP MOVSB/STOSB" },
-            { "PCLMULQDQ", "Supports PCLMULQDQ instruction" },
-            { "POPCNT", "Supports POPCNT instruction" },
-            { "LZCNT", "Supports LZCNT instruction" },
-            { "SEP", "Supports fast system call instructions" },
-            { "LAHF", "Supports LAHF/SAHF instructions in 64bit mode" },
-            { "HLE", "Supports Hardware Lock Elision instructions" },
-            { "RTM", "Supports Restricted Transactional Memory instructions" },
-            { "DE", "Supports I/O breakpoints including CR4.DE" },
-            { "DTES64", "Can write history of 64bit branch addresses" },
-            { "DS", "Implements memoryresident debug buffer" },
-            { "DSCPL", "Supports Debug Store feature with CPL" },
-            { "PCID", "Supports PCIDs and settable CR4.PCIDE" },
-            { "INVPCID", "Supports INVPCID instruction" },
-            { "PDCM", "Supports Performance Capabilities MSR" },
-            { "RDTSCP", "Supports RDTSCP instruction" },
-            { "TSC", "Supports RDTSC instruction" },
-            { "TSCDEADLINE", "Local APIC supports oneshot deadline timer" },
-            { "TSCINVARIANT", "TSC runs at constant rate" },
-            { "xTPR", "Supports disabling task priority messages" },
-            { "EIST", "Supports Enhanced Intel Speedstep" },
-            { "ACPI", "Implements MSR for power management" },
-            { "TM", "Implements thermal monitor circuitry" },
-            { "TM2", "Implements Thermal Monitor 2 control" },
-            { "APIC", "Implements softwareaccessible local APIC" },
-            { "x2APIC", "Supports x2APIC" },
-            { "CNXTID", "L1 data cache mode adaptive or BIOS" },
-            { "MCE", "Supports Machine Check, INT18 and CR4.MCE" },
-            { "MCA", "Implements Machine Check Architecture" },
-            { "PBE", "Supports use of FERR#/PBE# pin" },
-            { "PSN", "Implements 96bit processor serial number" },
-            { "PREFETCHW", "Supports PREFETCHW instruction" },
-            { "SYSCALL", "Supports SYSCALL/SYSRET instructions" },
-            { "SHA", "Supports Intel SHA extensions" },
-            { "TBM", "Supports trading bit manipulation" },
-            { "XOP", "Supports XOP instruction set" },
-            { "NP", "Supports AMD ntested page tables" },
-            { "EPT", "Supports Intel extended page tables (SLAT)" }
+            {"HTT", "Hyperthreading enabled"},
+            {"HYPERVISOR", "Hypervisor is present"},
+            {"VMX", "Supports Intel hardwareassisted virtualization"},
+            {"SVM", "Supports AMD hardwareassisted virtualization"},
+            {"X64", "Supports 64bit mode"},
+            {"SMX", "Supports Intel trusted execution"},
+            {"SKINIT", "Supports AMD SKINIT"},
+            {"NX", "Supports noexecute page protection"},
+            {"SMEP", "Supports Supervisor Mode Execution Prevention"},
+            {"SMAP", "Supports Supervisor Mode Access Prevention"},
+            {"PAGE1GB", "Supports 1 GB large pages"},
+            {"PAE", "Supports > 32bit physical addresses"},
+            {"PAT", "Supports Page Attribute Table"},
+            {"PSE", "Supports 4 MB pages"},
+            {"PSE36", "Supports > 32bit address 4 MB pages"},
+            {"PGE", "Supports global bit in page tables"},
+            {"SS", "Supports bus snooping for cache operations"},
+            {"VME", "Supports Virtual8086 mode"},
+            {"FSGSBASE", "Supports direct GS/FS base access"},
+            {"FPU", "Implements i387 floating point instructions"},
+            {"MMX", "Supports MMX instruction set"},
+            {"MMXEXT", "Implements AMD MMX extensions"},
+            {"3DNOW", "Supports 3DNow! instructions"},
+            {"3DNOWEXT", "Supports 3DNow! extension instructions"},
+            {"SSE", "Supports Streaming SIMD Extensions"},
+            {"SSE2", "Supports Streaming SIMD Extensions 2"},
+            {"SSE3", "Supports Streaming SIMD Extensions 3"},
+            {"SSSE3", "Supports Supplemental SIMD Extensions 3"},
+            {"SSE4a", "Supports Streaming SIMDR Extensions 4a"},
+            {"SSE4.1", "Supports Streaming SIMD Extensions 4.1"},
+            {"SSE4.2", "Supports Streaming SIMD Extensions 4.2"},
+            {"AES", "Supports AES extensions"},
+            {"PREFETCHWT1", "Supports PREFETCHWT1 instruction"},
+            {"ABM", "Supports advanced bit manipulation"},
+            {"ERMS", "Enhanced REP MOVSB/STOSB"},
+            {"AVX", "Supports AVX intruction extensions"},
+            {"AVX2", "Supports AVX intruction extensions"},
+            {"AVX512CD", "Supports AVX-512 Conflict Detection intructions"},
+            {"AVX512ER", "Supports AVX-512 Exponential and Reciprocal instructions"},
+            {"AVX512F", "Supports AVX-512 Foundation"},
+            {"AVX512PF", "Supports AVX-512 Prefetch instructions"},
+            {"FMA", "Supports FMA extensions using YMM state"},
+            {"MSR", "Implements RDMSR/WRMSR instructions"},
+            {"MTRR", "Supports Memory Type Range Registers"},
+            {"XSAVE", "Supports XSAVE/XRSTOR instructions"},
+            {"OSXSAVE", "Supports XSETBV/XGETBV instructions"},
+            {"RDRAND", "Supports RDRAND instruction"},
+            {"RDSEED", "Supports RDSEED instruction"},
+            {"CMOV", "Supports CMOVcc instruction"},
+            {"CLFSH", "Supports CLFLUSH instruction"},
+            {"CX8", "Supports compare and exchange 8byte instructions"},
+            {"CMPXCHG16B", "Supports CMPXCHG16B instruction"},
+            {"BMI1", "Supports bit manipulation extensions 1"},
+            {"BMI2", "Supports bit manipulation extensions 2"},
+            {"ADX", "Supports ADCX/ADOX instructions"},
+            {"DCA", "Supports prefetch from memorymapped device"},
+            {"F16C", "Supports halfprecision instruction"},
+            {"FXSR", "Supports FXSAVE/FXSTOR instructions"},
+            {"FFXSR", "Supports optimized FXSAVE/FSRSTOR instruction"},
+            {"MONITOR", "Supports MONITOR and MWAIT instructions"},
+            {"MOVBE", "Supports MOVBE instruction"},
+            {"ERMSB", "Supports Enhanced REP MOVSB/STOSB"},
+            {"PCLMULQDQ", "Supports PCLMULQDQ instruction"},
+            {"POPCNT", "Supports POPCNT instruction"},
+            {"LZCNT", "Supports LZCNT instruction"},
+            {"SEP", "Supports fast system call instructions"},
+            {"LAHF", "Supports LAHF/SAHF instructions in 64bit mode"},
+            {"HLE", "Supports Hardware Lock Elision instructions"},
+            {"RTM", "Supports Restricted Transactional Memory instructions"},
+            {"DE", "Supports I/O breakpoints including CR4.DE"},
+            {"DTES64", "Can write history of 64bit branch addresses"},
+            {"DS", "Implements memoryresident debug buffer"},
+            {"DSCPL", "Supports Debug Store feature with CPL"},
+            {"PCID", "Supports PCIDs and settable CR4.PCIDE"},
+            {"INVPCID", "Supports INVPCID instruction"},
+            {"PDCM", "Supports Performance Capabilities MSR"},
+            {"RDTSCP", "Supports RDTSCP instruction"},
+            {"TSC", "Supports RDTSC instruction"},
+            {"TSCDEADLINE", "Local APIC supports oneshot deadline timer"},
+            {"TSCINVARIANT", "TSC runs at constant rate"},
+            {"xTPR", "Supports disabling task priority messages"},
+            {"EIST", "Supports Enhanced Intel Speedstep"},
+            {"ACPI", "Implements MSR for power management"},
+            {"TM", "Implements thermal monitor circuitry"},
+            {"TM2", "Implements Thermal Monitor 2 control"},
+            {"APIC", "Implements softwareaccessible local APIC"},
+            {"x2APIC", "Supports x2APIC"},
+            {"CNXTID", "L1 data cache mode adaptive or BIOS"},
+            {"MCE", "Supports Machine Check, INT18 and CR4.MCE"},
+            {"MCA", "Implements Machine Check Architecture"},
+            {"PBE", "Supports use of FERR#/PBE# pin"},
+            {"PSN", "Implements 96bit processor serial number"},
+            {"PREFETCHW", "Supports PREFETCHW instruction"},
+            {"SYSCALL", "Supports SYSCALL/SYSRET instructions"},
+            {"SHA", "Supports Intel SHA extensions"},
+            {"TBM", "Supports trading bit manipulation"},
+            {"XOP", "Supports XOP instruction set"},
+            {"NP", "Supports AMD ntested page tables"},
+
+            // TODO: EPT is not available via CPUID, but in the MSR IA32_VMX_PROCBASED_CTLS2.
+            //
+            // We would need to invoke the "rdmsr" instruction properly, like we already do
+            // with "cpuid".
+            //
+            // Additional stuff:
+            // - https://www.codeproject.com/Articles/215458/Virtualization-for-System-Programmers
+            {"EPT", "Supports Intel extended page tables (SLAT)"}
         };
 
         private static readonly Lazy<int> s_maxFeatureName = new Lazy<int>(() => s_descriptions.Keys.Max(k => k.Length));
@@ -231,13 +263,13 @@ namespace SysInfo
             {
                 tw.WriteLine("{0}\t{1}\t{2}", what.PadRight(s_maxFeatureName.Value), isSupported ? "*" : "-", "XXXXXXXXXXXXXX");
             }
-
         }
 
         public static bool IsIntelProcessor => CpuFeatures.IsIntel;
         public static bool IsAmdProcessor => CpuFeatures.IsAmd;
         public static IntPtr MaxBasicLeave { get; private set; }
         public static IntPtr MaxExtendedLeave { get; private set; }
+        public static byte[] MicrocodeUpdateSignature => Features.UpdateSignature.Value;
 
         public static int ProcessorStepping => CpuFeatures.Stepping;
 
@@ -263,8 +295,10 @@ namespace SysInfo
 
         public static string ProcessorVendor => CpuFeatures.CpuVendor;
         public static string ProcessorBrand => CpuFeatures.CpuBrand;
+
         // ReSharper disable InconsistentNaming
         public static bool SSE3 => CpuFeatures.Func1Ecx[0];
+
         public static bool PCLMULQDQ => CpuFeatures.Func1Ecx[1];
         public static bool MONITOR => CpuFeatures.Func1Ecx[3];
         public static bool SSSE3 => CpuFeatures.Func1Ecx[9];
@@ -322,6 +356,8 @@ namespace SysInfo
         public static bool VMX => CpuFeatures.Func1Ecx[5];
         public static bool SMX => CpuFeatures.Func1Ecx[6];
         public static bool NX => CpuFeatures.Func81Edx[20];
+        public static bool X64 => CpuFeatures.Func81Edx[29];
+
         public static bool NP => CpuFeatures.IsAmd && CpuFeatures.Func8AEdx[0];
         // ReSharper restore InconsistentNaming
 
@@ -331,6 +367,9 @@ namespace SysInfo
 
         private class Features
         {
+            private const string RegKey = @"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0";
+            public static readonly Lazy<byte[]> UpdateSignature = new Lazy<byte[]>(() => (byte[])Registry.GetValue(RegKey, "Update Signature", new byte[8]));
+
             public Features()
             {
                 using (var cpuid = new CpuIdHelper())
@@ -431,6 +470,27 @@ namespace SysInfo
 
                     MaxBasicLeave = new IntPtr(nIds);
                     MaxExtendedLeave = new IntPtr(nExIds);
+
+#if TRACE_CPUID
+                    Console.WriteLine("Basic:");
+                    for (var index = 0; index < m_data.Count; index++)
+                    {
+                        var x = m_data[index];
+                        Console.WriteLine(index + " eax => " + x[eax].ToString("x"));
+                        Console.WriteLine(index + " ebx => " + x[ebx].ToString("x"));
+                        Console.WriteLine(index + " ecx => " + x[ecx].ToString("x"));
+                        Console.WriteLine(index + " edx => " + x[edx].ToString("x"));
+                    }
+                    Console.WriteLine("Extended:");
+                    for (var index = 0; index < m_extdata.Count; index++)
+                    {
+                        var x = m_extdata[index];
+                        Console.WriteLine(index + " eax => " + x[eax].ToString("x"));
+                        Console.WriteLine(index + " ebx => " + x[ebx].ToString("x"));
+                        Console.WriteLine(index + " ecx => " + x[ecx].ToString("x"));
+                        Console.WriteLine(index + " edx => " + x[edx].ToString("x"));
+                    }
+#endif
                 }
             }
 
