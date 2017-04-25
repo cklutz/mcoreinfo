@@ -15,5 +15,5 @@ Supports the following (in terms of "coreinfo.exe"):
 Open:
 
 * "Approximate Cross-NUMA Node Access Cost (relative to fastest)" on NUMA sytems.
-* Further align CPUID/Capabilities with coreinfo.exe
+  * Currently, reading APIC SLIT and SRAT tables.
 
